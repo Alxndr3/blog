@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.http import Http404
 from .models import BlogPost
 from .forms import PostForm
 
@@ -28,7 +29,9 @@ def new_post(request):
         # POST data submitted; process data.
         form = PostForm(data=request.POST)
         if form.is_valid():
-            form.save()
+            new_post = form.save(commit=False)
+            new_post.owner = request.user
+            new_post.save()
             return redirect('blogs:posts')
     # Display a blank or invalida form.
     context = {'form': form}
@@ -37,6 +40,8 @@ def new_post(request):
 def edit_post(request, post_id):
     """Edit an existing post."""
     post = BlogPost.objects.get(id=post_id)
+    if post.owner != request.user:
+        raise Http404
     if request.method != 'POST':
         # Initial request: pre-fill form with the current post.
         form = PostForm(instance=post)
